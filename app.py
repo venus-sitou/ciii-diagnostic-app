@@ -12,7 +12,7 @@ from src.finance_math import (
     classify_estimate,
     future_value_monthly_payment,
     gap_message,
-    multi_rate_growth_curve,
+    growth_curve,
     total_principal,
 )
 
@@ -88,23 +88,13 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
     # the Submit button, before the result banner.
     st.subheader("🎞️ Animation: the time-amplification effect")
     st.caption(
-        "Scrub the year slider, or press ▶ Play. The same monthly contribution "
-        "is shown at four different annual rates — watch how a small rate gap "
-        "widens into a large dollar gap by year 18."
+        f"Scrub the year slider, or press ▶ Play. Watch the dashed grey "
+        f"(principal-only baseline) versus the blue compound line."
     )
 
-    RATES = (0.00, 0.04, 0.08, 0.12)
-    RATE_COLORS = {0.00: "#95a5a6", 0.04: "#5dade2", 0.08: "#3498db", 0.12: "#1f618d"}
-    RATE_LABELS = {
-        0.00: "Principal only (0%)",
-        0.04: "Compound at 4%",
-        0.08: f"Compound at {annual_rate*100:.0f}% (current scenario)",
-        0.12: "Compound at 12%",
-    }
-
     @st.cache_data
-    def _multi_curve(p: float, y: int) -> dict:
-        return multi_rate_growth_curve(p, RATES, y)
+    def _scenario_curve(p: float, y: int, r: float) -> dict:
+        return growth_curve(p, r, y)
 
     if "frame_year" not in st.session_state:
         st.session_state.frame_year = years
@@ -157,54 +147,75 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
         time.sleep(0.1)
         st.rerun()
 
-    curves = _multi_curve(pmt, years)
-    end_idx = min(frame * 12 + 1, len(curves[0.00]["months"]))
-    years_axis = [m / 12 for m in curves[0.00]["months"][:end_idx]]
+    curve = _scenario_curve(pmt, years, annual_rate)
+    end_idx = min(frame * 12 + 1, len(curve["months"]))
+    years_axis = [m / 12 for m in curve["months"][:end_idx]]
 
     fig = go.Figure()
-    for r in RATES:
-        y_series = curves[r]["principal" if r == 0 else "compound"][:end_idx]
-        is_scenario = abs(r - annual_rate) < 1e-9
-        fig.add_trace(go.Scatter(
-            x=years_axis, y=y_series, mode="lines",
-            name=RATE_LABELS[r],
-            line=dict(
-                color=RATE_COLORS[r],
-                width=3 if is_scenario else 1.8,
-                dash="dot" if r == 0 else "solid",
-            ),
-        ))
+    # Principal-only baseline (linear, dotted grey) as a reference.
+    fig.add_trace(go.Scatter(
+        x=years_axis, y=curve["principal"][:end_idx], mode="lines",
+        name="Principal only",
+        line=dict(color="#95a5a6", width=2, dash="dot"),
+    ))
+    # Compound curve at the user's chosen scenario rate.
+    fig.add_trace(go.Scatter(
+        x=years_axis, y=curve["compound"][:end_idx], mode="lines",
+        name=f"Compound at {annual_rate*100:.1f}%",
+        line=dict(color="#3498db", width=3),
+    ))
 
     # User's estimate — horizontal line across the full timeline.
-    # Drawn thicker and labelled at the start so it's visible at every frame.
+    # Annotated at the right edge so it doesn't overlap the title/legend area.
     if estimate is not None:
         est_color = result["color"]
         fig.add_hline(
             y=estimate, line_dash="dash", line_color=est_color, line_width=3,
             annotation_text=f"Your estimate: ${estimate:,.0f}",
-            annotation_position="top left",
+            annotation_position="right",
+            annotation_xshift=-6,
             annotation_font=dict(size=12, color=est_color),
         )
 
-    fig.add_hrect(y0=120_000, y1=200_000,
-                  fillcolor="#27ae60", opacity=0.08, line_width=0,
-                  annotation_text="Correct-magnitude band", annotation_position="top left")
+    # Correct-magnitude band annotation pinned inside-top-right so it does
+    # not collide with the chart title or the estimate label.
+    fig.add_hrect(
+        y0=120_000, y1=200_000,
+        fillcolor="#27ae60", opacity=0.08, line_width=0,
+        annotation_text="Correct-magnitude band",
+        annotation_position="inside top right",
+        annotation_xshift=-8, annotation_yshift=-4,
+    )
 
     if frame > 0:
-        fv_at_frame = curves[annual_rate]["compound"][end_idx - 1]
+        fv_at_frame = curve["compound"][end_idx - 1]
         fig.add_trace(go.Scatter(
             x=[frame], y=[fv_at_frame], mode="markers+text",
             marker=dict(size=14, color="#e74c3c", symbol="star"),
-            text=[f"FV at year {frame}<br>${fv_at_frame:,.0f}"],
-            textposition="top center",
-            textfont=dict(size=11, color="#c0392b"), showlegend=False,
+            text=[f"FV ${fv_at_frame:,.0f}"],
+            textposition="bottom center",
+            textfont=dict(size=11, color="#c0392b"),
+            showlegend=False, hoverinfo="skip",
         ))
 
     fig.update_layout(
-        title=f"Growth through year {frame} of {years} — same ${pmt:,.0f}/mo at different rates",
-        xaxis_title="Years", yaxis_title="$", hovermode="x unified",
-        template="plotly_white", height=520,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        title=dict(
+            text=f"Year {frame} of {years} · ${pmt:,.0f}/mo @ {annual_rate*100:.1f}%",
+            x=0.02, xanchor="left",
+            y=0.97, yanchor="top",
+            font=dict(size=14),
+        ),
+        xaxis_title="Years", yaxis_title="$",
+        hovermode="x unified", template="plotly_white",
+        height=520,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="top", y=-0.14,
+            xanchor="center", x=0.5,
+            font=dict(size=11),
+        ),
+        margin=dict(t=60, b=80, l=70, r=40),
     )
 
     st.plotly_chart(fig, use_container_width=True)
