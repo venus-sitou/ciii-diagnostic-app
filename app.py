@@ -3,6 +3,8 @@
 Run with: streamlit run app.py
 """
 
+import time
+
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -87,8 +89,18 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
     def _scenario_curve(p: float, y: int, r: float) -> dict:
         return growth_curve(p, r, y)
 
+    # Auto-play animation: when the chart appears, animate from year 0 to
+    # years over ~0.1s per year (~1.8s total for an 18-year scenario).
+    # No user-facing controls — the animation runs once automatically.
+    if "frame_year" not in st.session_state:
+        st.session_state.frame_year = 0
+    if "animating" not in st.session_state:
+        st.session_state.animating = True
+
+    frame = st.session_state.frame_year
+
     curve = _scenario_curve(pmt, years, annual_rate)
-    end_idx = len(curve["months"])
+    end_idx = min(frame * 12 + 1, len(curve["months"]))
     years_axis = [m / 12 for m in curve["months"][:end_idx]]
 
     fig = go.Figure()
@@ -127,11 +139,13 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
         annotation_xshift=-8, annotation_yshift=-4,
     )
 
-    fv = curve["compound"][end_idx - 1]
+    # The star follows the current animation frame so the user sees the
+    # compound future value growing in lockstep with the curve.
+    fv_at_frame = curve["compound"][end_idx - 1]
     fig.add_trace(go.Scatter(
-        x=[years], y=[fv], mode="markers+text",
+        x=[frame], y=[fv_at_frame], mode="markers+text",
         marker=dict(size=14, color="#e74c3c", symbol="star"),
-        text=[f"FV ${fv:,.0f}"],
+        text=[f"FV ${fv_at_frame:,.0f}"],
         textposition="top center",
         textfont=dict(size=11, color="#c0392b"),
         showlegend=False, hoverinfo="skip",
@@ -140,7 +154,7 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
 
     fig.update_layout(
         title=dict(
-            text=f"{years}-year growth · ${pmt:,.0f}/mo @ {annual_rate*100:.1f}%",
+            text=f"Year {frame} of {years} · ${pmt:,.0f}/mo @ {annual_rate*100:.1f}%",
             x=0.02, xanchor="left",
             y=0.97, yanchor="top",
             font=dict(size=14),
@@ -163,9 +177,25 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
     )
     st.plotly_chart(fig, use_container_width=True)
 
+    # Auto-advance the animation playhead. After rendering the chart at the
+    # current frame, sleep briefly and rerun with frame+1 until we hit the
+    # end of the timeline. The user sees the curve draw itself; no UI
+    # controls are exposed.
+    if st.session_state.animating and st.session_state.frame_year < years:
+        time.sleep(0.1)
+        st.session_state.frame_year += 1
+        st.rerun()
+    elif st.session_state.frame_year >= years:
+        st.session_state.animating = False
+
 
 if estimate is not None:
     _render_animation_chart(pmt, annual_rate, years, estimate)
+else:
+    # Reset the animation playhead so the next time the user types, the
+    # animation starts from year 0 again.
+    st.session_state.frame_year = 0
+    st.session_state.animating = False
 
 col_a, col_b = st.columns([3, 1])
 with col_a:
