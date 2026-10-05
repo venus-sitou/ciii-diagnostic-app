@@ -172,8 +172,9 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
         fig.add_hline(
             y=estimate, line_dash="dash", line_color=est_color, line_width=3,
             annotation_text=f"Your estimate: ${estimate:,.0f}",
-            annotation_position="right",
-            annotation_xshift=-6,
+            annotation_position="top right",
+            annotation_xshift=-10,
+            annotation_yshift=10,
             annotation_font=dict(size=12, color=est_color),
         )
 
@@ -193,9 +194,10 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
             x=[frame], y=[fv_at_frame], mode="markers+text",
             marker=dict(size=14, color="#e74c3c", symbol="star"),
             text=[f"FV ${fv_at_frame:,.0f}"],
-            textposition="bottom center",
+            textposition="middle left",
             textfont=dict(size=11, color="#c0392b"),
             showlegend=False, hoverinfo="skip",
+            cliponaxis=False,
         ))
 
     fig.update_layout(
@@ -215,7 +217,7 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
             xanchor="center", x=0.5,
             font=dict(size=11),
         ),
-        margin=dict(t=60, b=80, l=70, r=40),
+        margin=dict(t=60, b=80, l=70, r=180),
     )
 
     st.plotly_chart(fig, use_container_width=True)
