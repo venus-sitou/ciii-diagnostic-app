@@ -26,6 +26,12 @@ st.set_page_config(
 
 CUSTOM_CSS = """
 <style>
+    /* Force the main block to fill the available width, overriding any
+       narrower default Streamlit applies even with layout='wide'. */
+    .block-container { max-width: 100% !important; padding-left: 2rem !important; padding-right: 2rem !important; }
+    [data-testid="stAppViewContainer"] .main .block-container { max-width: 100% !important; }
+    .element-container { width: 100% !important; }
+
     .result-banner { padding: 20px; border-radius: 10px; text-align: center; font-size: 16px; }
     .result-banner.unknown { background: #ffe8e3; color: #c0392b; border: 2px solid #e74c3c; }
     .result-banner.serious { background: #fff3cd; color: #b9770c; border: 2px solid #f39c12; }
