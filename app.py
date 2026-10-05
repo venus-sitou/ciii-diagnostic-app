@@ -4,6 +4,7 @@ Run with: streamlit run app.py
 """
 
 import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
 
 from src.finance_math import (
@@ -127,17 +128,45 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
         annotation_xshift=-8, annotation_yshift=-4,
     )
 
-    # Star at the final frame's compound future value.
-    fv = curve["compound"][end_idx - 1]
-    fig.add_trace(go.Scatter(
-        x=[years], y=[fv], mode="markers+text",
+    # Star trace: starts at year 0 and travels along the compound curve to
+    # the final year when the chart renders. Driven by Plotly native
+    # animation (frames + updatemenus) so the animation runs entirely in the
+    # browser — no Streamlit reruns.
+    star_trace = go.Scatter(
+        x=[0], y=[curve["compound"][0]],
+        mode="markers+text",
         marker=dict(size=14, color="#e74c3c", symbol="star"),
-        text=[f"FV ${fv:,.0f}"],
+        text=[f"FV ${curve['compound'][0]:,.0f}"],
         textposition="top center",
         textfont=dict(size=11, color="#c0392b"),
         showlegend=False, hoverinfo="skip",
         cliponaxis=False,
-    ))
+        name="Future value",
+    )
+    fig.add_trace(star_trace)
+    star_index = len(fig.data) - 1
+
+    # Build one frame per year. Each frame redraws the star at the
+    # corresponding compound value. Plotly matches frames to traces by the
+    # `traces=` index list.
+    frames = []
+    for y in range(0, years + 1):
+        idx = y * 12
+        frames.append(go.Frame(
+            name=str(y),
+            data=[go.Scatter(
+                x=[y], y=[curve["compound"][idx]],
+                mode="markers+text",
+                marker=dict(size=14, color="#e74c3c", symbol="star"),
+                text=[f"FV ${curve['compound'][idx]:,.0f}"],
+                textposition="top center",
+                textfont=dict(size=11, color="#c0392b"),
+                showlegend=False, hoverinfo="skip",
+                cliponaxis=False,
+            )],
+            traces=[star_index],
+        ))
+    fig.frames = frames
 
     fig.update_layout(
         title=dict(
@@ -162,7 +191,43 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
         # available width on small viewports.
         margin=dict(t=60, b=80, l=60, r=40),
     )
-    st.plotly_chart(fig, use_container_width=True)
+
+    # Render via st.components.v1.html so we have direct JS access to call
+    # Plotly.animate() and start the auto-play. Embed a script that runs
+    # Plotly.animate once the chart has mounted.
+    html = pio.to_html(fig, include_plotlyjs="cdn", full_html=False, div_id="ciii-chart")
+    n_frames = len(fig.frames) if fig.frames else 0
+    trigger = f"""
+    <div id="ciii-chart-wrapper" style="width:100%;">
+      {html}
+      <script>
+        (function() {{
+          function tryAnimate() {{
+            var gd = document.getElementById('ciii-chart');
+            if (gd && window.Plotly && typeof window.Plotly.animate === 'function') {{
+              var frameNames = [];
+              for (var i = 0; i < {n_frames}; i++) frameNames.push(String(i));
+              window.Plotly.animate(gd, frameNames, {{
+                frame: {{ duration: 200, redraw: false }},
+                transition: {{ duration: 0, easing: 'linear' }},
+                mode: 'immediate',
+                fromcurrent: false
+              }});
+              return true;
+            }}
+            return false;
+          }}
+          // Try a few times as Plotly loads asynchronously.
+          var attempts = 0;
+          var timer = setInterval(function() {{
+            attempts++;
+            if (tryAnimate() || attempts > 50) clearInterval(timer);
+          }}, 80);
+        }})();
+      </script>
+    </div>
+    """
+    st.components.v1.html(trigger, height=560)
 
 
 if estimate is not None:
