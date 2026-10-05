@@ -90,27 +90,40 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
 
     curve = _scenario_curve(pmt, years, annual_rate)
     end_idx = len(curve["months"])
-    years_axis = [m / 12 for m in curve["months"][:end_idx]]
+    full_years_axis = [m / 12 for m in curve["months"][:end_idx]]
 
     fig = go.Figure()
+    # Principal: drawn at full extent, never animates. (Reference baseline.)
     fig.add_trace(go.Scatter(
-        x=years_axis, y=curve["principal"][:end_idx], mode="lines",
+        x=full_years_axis, y=curve["principal"][:end_idx], mode="lines",
         name="Principal only",
         line=dict(color="#95a5a6", width=2, dash="dot"),
     ))
+    # Compound: starts EMPTY (only the origin point) and grows left-to-right
+    # as the animation plays. Each frame replaces this trace with a longer slice.
     fig.add_trace(go.Scatter(
-        x=years_axis, y=curve["compound"][:end_idx], mode="lines",
+        x=[0], y=[0],
+        mode="lines",
         name=f"At {annual_rate*100:.0f}%",
         line=dict(color="#3498db", width=3),
+    ))
+    # Star: starts at year 0 (origin) and travels to the curve's tip.
+    fig.add_trace(go.Scatter(
+        x=[0], y=[0],
+        mode="markers+text",
+        marker=dict(size=14, color="#e74c3c", symbol="star"),
+        text=["FV $0"],
+        textposition="top center",
+        textfont=dict(size=11, color="#c0392b"),
+        showlegend=False, hoverinfo="skip",
+        cliponaxis=False,
+        name="Future value",
     ))
 
     if estimate is not None:
         # Show the estimate line with the classification color even before
         # Submit is pressed — instant visual feedback as the user types.
         est_color = classify_estimate(estimate)["color"]
-        # Place the label INSIDE the plot area (top-left of the line) so the
-        # chart's right margin can stay small and the figure fills the
-        # viewport on narrow screens.
         fig.add_hline(
             y=estimate, line_dash="dash", line_color=est_color, line_width=3,
             annotation_text=f"Your estimate: ${estimate:,.0f}",
@@ -128,53 +141,42 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
         annotation_xshift=-8, annotation_yshift=-4,
     )
 
-    # Star trace: starts at year 0 and travels along the compound curve to
-    # the final year when the chart renders. Driven by Plotly native
-    # animation (frames + updatemenus) so the animation runs entirely in the
-    # browser — no Streamlit reruns.
-    star_trace = go.Scatter(
-        x=[0], y=[curve["compound"][0]],
-        mode="markers+text",
-        marker=dict(size=14, color="#e74c3c", symbol="star"),
-        text=[f"FV ${curve['compound'][0]:,.0f}"],
-        textposition="top center",
-        textfont=dict(size=11, color="#c0392b"),
-        showlegend=False, hoverinfo="skip",
-        cliponaxis=False,
-        name="Future value",
-    )
-    fig.add_trace(star_trace)
-    star_index = len(fig.data) - 1
-
-    # Build one frame per year. Each frame redraws the star at the
-    # corresponding compound value. Plotly matches frames to traces by the
-    # `traces=` index list.
+    # Build one frame per year. Each frame redraws:
+    #   trace 1 (compound): a curve sliced from month 0..(y*12)
+    #   trace 2 (star):     the star at (y, compound[y*12])
+    # Plotly matches frames to traces by the `traces=` index list, so this
+    # redraws the right traces in place while keeping trace 0 (principal)
+    # static.
+    compound_index = 1
+    star_index = 2
     frames = []
     for y in range(0, years + 1):
         idx = y * 12
         frames.append(go.Frame(
             name=str(y),
-            data=[go.Scatter(
-                x=[y], y=[curve["compound"][idx]],
-                mode="markers+text",
-                marker=dict(size=14, color="#e74c3c", symbol="star"),
-                text=[f"FV ${curve['compound'][idx]:,.0f}"],
-                textposition="top center",
-                textfont=dict(size=11, color="#c0392b"),
-                showlegend=False, hoverinfo="skip",
-                cliponaxis=False,
-            )],
-            traces=[star_index],
+            data=[
+                go.Scatter(
+                    x=full_years_axis[: idx + 1],
+                    y=curve["compound"][: idx + 1],
+                    mode="lines",
+                    line=dict(color="#3498db", width=3),
+                ),
+                go.Scatter(
+                    x=[y], y=[curve["compound"][idx]],
+                    mode="markers+text",
+                    marker=dict(size=14, color="#e74c3c", symbol="star"),
+                    text=[f"FV ${curve['compound'][idx]:,.0f}"],
+                    textposition="top center",
+                    textfont=dict(size=11, color="#c0392b"),
+                    showlegend=False, hoverinfo="skip",
+                    cliponaxis=False,
+                ),
+            ],
+            traces=[compound_index, star_index],
         ))
     fig.frames = frames
 
     fig.update_layout(
-        title=dict(
-            text=f"{years}-year growth · ${pmt:,.0f}/mo @ {annual_rate*100:.1f}%",
-            x=0.02, xanchor="left",
-            y=0.97, yanchor="top",
-            font=dict(size=14),
-        ),
         xaxis_title="Years", yaxis_title="$",
         hovermode="x unified", template="plotly_white",
         height=520,
@@ -185,11 +187,8 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
             xanchor="center", x=0.5,
             font=dict(size=11),
         ),
-        # Small, symmetric margins so the figure fills the viewport on
-        # narrow screens (iPhone emulator ~440px). Earlier we used r=180
-        # to fit an outside-the-plot label, but that ate almost all of the
-        # available width on small viewports.
-        margin=dict(t=60, b=80, l=60, r=40),
+        # Tight top margin since the title is removed.
+        margin=dict(t=20, b=80, l=60, r=40),
     )
 
     # Render via st.components.v1.html so we have direct JS access to call
@@ -208,8 +207,8 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
               var frameNames = [];
               for (var i = 0; i < {n_frames}; i++) frameNames.push(String(i));
               window.Plotly.animate(gd, frameNames, {{
-                frame: {{ duration: 200, redraw: false }},
-                transition: {{ duration: 0, easing: 'linear' }},
+                frame: {{ duration: 80, redraw: false }},
+                transition: {{ duration: 30, easing: 'linear' }},
                 mode: 'immediate',
                 fromcurrent: false
               }});
@@ -227,7 +226,7 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
       </script>
     </div>
     """
-    st.components.v1.html(trigger, height=560)
+    st.components.v1.html(trigger, height=540)
 
 
 if estimate is not None:
