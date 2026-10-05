@@ -97,7 +97,7 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
     ))
     fig.add_trace(go.Scatter(
         x=years_axis, y=curve["compound"][:end_idx], mode="lines",
-        name=f"Compound at {annual_rate*100:.1f}%",
+        name=f"At {annual_rate*100:.0f}%",
         line=dict(color="#3498db", width=3),
     ))
 
