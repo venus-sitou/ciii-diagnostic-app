@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CIII 診斷器 — 時間價值盲點 (TVB-20 Prototype)</title>
+  <title>CIII Diagnostic Tool — Time-Value Blind Spots (TVB-20 Prototype)</title>
   <style>
     :root {
       --primary: #2c3e50;
@@ -16,7 +16,7 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: "Microsoft JhengHei", "Noto Sans CJK TC", "PingFang TC", sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       background: var(--bg);
       color: var(--primary);
       line-height: 1.7;
@@ -208,49 +208,49 @@
 <body>
   <div class="container">
     <header>
-      <h1>CIII 診斷器</h1>
-      <p>時間價值盲點 (Time-Value Blind Spots) — TVB-20 Prototype</p>
+      <h1>CIII Diagnostic Tool</h1>
+      <p>Time-Value Blind Spots — TVB-20 Prototype</p>
     </header>
 
     <!-- Step 1: Input estimate -->
     <div class="card">
-      <h2>第一步：輸入你的估算</h2>
+      <h2>Step 1: Enter your estimate</h2>
       <div class="scenario">
-        <strong>情境題：</strong>假設你由 15 歲開始，每月儲蓄或投資 <strong>MOP $300</strong>，
-        年回報率 <strong>8%</strong>。18 年後，這筆錢大約會變成多少？
+        <strong>Scenario:</strong> Suppose you start at age 15 and save or invest <strong>MOP $300</strong> every month,
+        at an annual return of <strong>8%</strong>. Roughly how much will this sum grow to after 18 years?
       </div>
       <div class="input-group">
-        <label for="estimate">你的估算（MOP）：</label>
-        <input type="number" id="estimate" placeholder="例如：120000" min="0" step="1000">
-        <div class="hint-text">提示：18 年本金 MOP $64,800。請嘗試估算長期複利後的總值。</div>
+        <label for="estimate">Your estimate (MOP):</label>
+        <input type="number" id="estimate" placeholder="e.g. 120000" min="0" step="1000">
+        <div class="hint-text">Hint: the principal sum alone is MOP $64,800. Try to estimate the long-term compound future value.</div>
       </div>
-      <button class="btn" onclick="diagnose()">提交估算 → 系統計算</button>
+      <button class="btn" onclick="diagnose()">Submit estimate → Calculate</button>
     </div>
 
     <!-- Step 2-5: Result -->
     <div class="card result" id="result">
-      <h2 id="resultTitle">診斷結果</h2>
+      <h2 id="resultTitle">Diagnostic result</h2>
       <div id="resultBanner" class="result-banner"></div>
 
       <!-- Comparison: principal vs FV vs estimate -->
       <div class="comparison">
         <div class="comparison-item">
-          <div class="label">18 年本金總額</div>
+          <div class="label">18-year principal sum</div>
           <div class="value">MOP $64,800</div>
         </div>
         <div class="comparison-item highlight">
-          <div class="label">合理複利終值</div>
+          <div class="label">Compound future value</div>
           <div class="value">MOP $144,026</div>
         </div>
         <div class="comparison-item warn">
-          <div class="label">你的估算</div>
+          <div class="label">Your estimate</div>
           <div class="value" id="userEstimate">—</div>
         </div>
       </div>
 
       <!-- Gap display -->
       <div class="gap-display">
-        <div class="label">你的估算與合理終值的差距</div>
+        <div class="label">Gap between your estimate and the compound future value</div>
         <div class="gap" id="gapValue">—</div>
         <div class="desc" id="gapDesc"></div>
       </div>
@@ -262,37 +262,37 @@
       <div id="classificationDetails"></div>
 
       <!-- Reset button -->
-      <button class="btn btn-secondary" onclick="resetForm()">重新估算</button>
+      <button class="btn btn-secondary" onclick="resetForm()">Estimate again</button>
     </div>
 
     <!-- Legend -->
     <div class="card">
-      <h2>分類說明</h2>
+      <h2>Classification guide</h2>
       <div class="info-row">
-        <span class="label">正確量級</span>
+        <span class="label">Correct magnitude</span>
         <span class="value">MOP $120,000 – $200,000</span>
       </div>
       <div class="info-row">
-        <span class="label">接近但低估</span>
+        <span class="label">Near but low</span>
         <span class="value">MOP $60,000 – $120,000</span>
       </div>
       <div class="info-row">
-        <span class="label">嚴重低估</span>
-        <span class="value">低於 MOP $60,000</span>
+        <span class="label">Severe underestimate</span>
+        <span class="value">Below MOP $60,000</span>
       </div>
       <div class="info-row">
-        <span class="label">不知道</span>
-        <span class="value">未輸入估算 / 估算為 0</span>
+        <span class="label">Don't know</span>
+        <span class="value">No estimate entered / estimate is 0</span>
       </div>
       <div class="legend">
-        <strong>公式：</strong> FV = 300 × [((1+0.08/12)<sup>216</sup>−1) / (0.08/12)] ≈ MOP $144,026<br>
-        <strong>注意：</strong> 8% 為教育假設，不構成投資建議。實際投資有風險、波動、費用與通脹問題。
+        <strong>Formula:</strong> FV = 300 × [((1+0.08/12)<sup>216</sup>−1) / (0.08/12)] ≈ MOP $144,026<br>
+        <strong>Note:</strong> 8% is a teaching assumption, not investment advice. Real investing involves risk, volatility, fees, and inflation.
       </div>
     </div>
 
     <footer>
-      <div>TVB-20 × CIII 診斷器原型 v1.0</div>
-      <div style="margin-top:4px;">第七屆澳門青少年科學家大會 · 探索性教育工具</div>
+      <div>TVB-20 × CIII Diagnostic Tool prototype v1.0</div>
+      <div style="margin-top:4px;">An exploratory educational tool</div>
     </footer>
   </div>
 
@@ -318,42 +318,42 @@
       if (estimate === null || isNaN(estimate) || estimate <= 0) {
         return {
           key: 'unknown',
-          label: '不知道',
+          label: "Don't know",
           emoji: '❓',
-          message: '你沒有輸入金額。這本身已經是一個值得關注的信號：學生面對長期複利問題時，缺乏進入估算的基本入口。',
+          message: 'You did not enter an amount. This in itself is a meaningful signal: when faced with a long-horizon compound-interest problem, students often lack a starting point for an estimate.',
         };
       }
       if (estimate >= THRESHOLDS.correct_min && estimate <= THRESHOLDS.correct_max) {
         return {
           key: 'correct',
-          label: '正確量級',
+          label: 'Correct magnitude',
           emoji: '✅',
-          message: '你的估算已進入正確區間。這說明你具備基本長期複利量級感，可進一步學習風險、流動性與投資組合等進階內容。',
+          message: 'Your estimate falls within the correct-magnitude range. You have a working sense of long-term compound growth; next steps could include risk, liquidity, and portfolio diversification.',
         };
       }
       if (estimate >= THRESHOLDS.near_min && estimate < THRESHOLDS.correct_min) {
         return {
           key: 'near',
-          label: '接近但低估',
+          label: 'Near but low',
           emoji: '⚠️',
-          message: '你有部分量感，但仍低估了時間放大效應。實際 18 年終值約為 MOP $144,026，比你的估算多出不少。',
+          message: 'You have partial intuition, but still underestimate the time-amplification effect. The actual 18-year compound future value is approximately MOP $144,026 — meaningfully higher than your estimate.',
         };
       }
       if (estimate < THRESHOLDS.near_min) {
         return {
           key: 'serious',
-          label: '嚴重低估',
+          label: 'Severe underestimate',
           emoji: '🚨',
-          message: '你的估算接近甚至低於本金總額（MOP $64,800）。這代表你傾向線性本金思維，未能把時間視為放大金錢的金融變量。',
+          message: 'Your estimate is close to or even below the principal sum (MOP $64,800). This suggests linear-principal thinking — treating time as neutral rather than as a variable that compounds money.',
         };
       }
-      // 估算 > 200000 (高估)
+      // estimate > 200000 (overestimate)
       if (estimate > THRESHOLDS.correct_max) {
         return {
           key: 'over',
-          label: '高估',
+          label: 'Overestimate',
           emoji: '⬆️',
-          message: '你的估算高於嚴格正確區間。雖然高估方向上不算盲點，但實際上 8% 年回報並非保證，且涉及波動、流動性與費用，請留意風險不確定性。',
+          message: 'Your estimate is above the strict correct band. Overestimation is not itself a blind spot, but an 8% annual return is not guaranteed, and real investing involves volatility, liquidity, and fees — keep that uncertainty in mind.',
         };
       }
     }
@@ -368,7 +368,7 @@
       const estimate = raw === '' ? null : parseFloat(raw);
 
       if (estimate !== null && estimate <= 0) {
-        alert('請輸入正數金額。');
+        alert('Please enter a positive amount.');
         return;
       }
 
@@ -384,42 +384,42 @@
       // Set banner
       banner.className = 'result-banner ' + result.key;
       banner.innerHTML = `<h3>${result.emoji} ${result.label}</h3>` +
-        `<p>${result.label}類別 — 認知診斷已記錄</p>`;
+        `<p>${result.label} category — cognitive diagnostic recorded</p>`;
 
       // User estimate display
-      userEstEl.textContent = estimate !== null ? formatMOP(estimate) : '未輸入';
+      userEstEl.textContent = estimate !== null ? formatMOP(estimate) : 'Not entered';
 
       // Gap calculation
       let gapHTML, gapDescText;
       if (estimate === null) {
         gapHTML = '—';
-        gapDescText = '未估算，無法計算差距';
+        gapDescText = 'No estimate provided — gap cannot be calculated';
       } else {
         const diff = FV - estimate;
         const pctOff = (diff / FV * 100);
         if (Math.abs(pctOff) < 1) {
           gapHTML = formatMOP(0);
-          gapDescText = '你的估算幾乎完全正確';
+          gapDescText = 'Your estimate is nearly exact';
         } else if (diff > 0) {
           gapHTML = '−' + formatMOP(diff);
-          gapDescText = `低估了 ${pctOff.toFixed(1)}% 的複利終值`;
+          gapDescText = `Underestimated the compound future value by ${pctOff.toFixed(1)}%`;
         } else {
           gapHTML = '+' + formatMOP(-diff);
-          gapDescText = `高估了 ${(-pctOff).toFixed(1)}% 的複利終值`;
+          gapDescText = `Overestimated the compound future value by ${(-pctOff).toFixed(1)}%`;
         }
       }
       gapEl.textContent = gapHTML;
       gapDescEl.textContent = gapDescText;
 
       // Personal message
-      personalMsg.innerHTML = '<strong>個人化提示：</strong>' + result.message;
+      personalMsg.innerHTML = '<strong>Personalised insight:</strong> ' + result.message;
 
       // Classification details
-      let detailsHTML = '<div class="legend" style="margin-top:16px;"><strong>診斷分類標準：</strong><br>';
-      detailsHTML += '• <strong>正確量級</strong>：MOP $120,000 – $200,000（<5% 本樣本學生）<br>';
-      detailsHTML += '• <strong>接近但低估</strong>：MOP $60,000 – $120,000（~20%）<br>';
-      detailsHTML += '• <strong>嚴重低估</strong>：低於 MOP $60,000（~20%）<br>';
-      detailsHTML += '• <strong>不知道</strong>：未估算（>50% — 你嘅位置如果同樣選擇「不知道」）';
+      let detailsHTML = '<div class="legend" style="margin-top:16px;"><strong>Classification criteria:</strong><br>';
+      detailsHTML += '• <strong>Correct magnitude</strong>: MOP $120,000 – $200,000 (&lt;5% of this sample)<br>';
+      detailsHTML += '• <strong>Near but low</strong>: MOP $60,000 – $120,000 (~20%)<br>';
+      detailsHTML += '• <strong>Severe underestimate</strong>: Below MOP $60,000 (~20%)<br>';
+      detailsHTML += '• <strong>Don\'t know</strong>: No estimate provided (&gt;50% — your reading is here when you also chose "Don\'t know")';
       detailsHTML += '</div>';
       classDetails.innerHTML = detailsHTML;
 

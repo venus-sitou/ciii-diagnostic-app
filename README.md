@@ -10,7 +10,7 @@ principal-vs-compound gap, and receive a personalised educational message.
 ## ✨ Features
 
 - 📊 **Animated compound growth chart** — visualises how time amplifies money
-- 🎯 **5-category classification** — `不知道 / 嚴重低估 / 接近但低估 / 正確量級 / 高估`
+- 🎯 **5-category classification** — `Don't know / Severe underestimate / Near but low / Correct magnitude / Overestimate`
 - 💡 **Personalised feedback** — explains the cognitive gap in plain language
 - ⚙️ **Adjustable scenario** — PMT, annual return, and years can be modified
 - 🎨 **Responsive UI** — works on desktop and tablet

@@ -72,47 +72,47 @@ def classify_estimate(
     """
     if estimate is None or estimate <= 0:
         return {
-            "key": "unknown", "label": "不知道", "emoji": "❓",
+            "key": "unknown", "label": "Don't know", "emoji": "❓",
             "color": "#e74c3c",
-            "message": "你沒有輸入金額。這本身已經是一個值得關注的信號：學生面對長期複利問題時，往往缺乏進入估算的基本入口。",
+            "message": "You did not enter an amount. This in itself is a meaningful signal: when faced with a long-horizon compound-interest problem, students often lack a starting point for an estimate.",
         }
     if correct_min <= estimate <= correct_max:
         return {
-            "key": "correct", "label": "正確量級", "emoji": "✅",
+            "key": "correct", "label": "Correct magnitude", "emoji": "✅",
             "color": "#27ae60",
-            "message": "你的估算已進入正確區間。這說明你具備基本長期複利量級感，可進一步學習風險、流動性與投資組合等進階內容。",
+            "message": "Your estimate falls within the correct-magnitude range. You have a working sense of long-term compound growth; next steps could include risk, liquidity, and portfolio diversification.",
         }
     if near_min <= estimate < correct_min:
         return {
-            "key": "near", "label": "接近但低估", "emoji": "⚠️",
+            "key": "near", "label": "Near but low", "emoji": "⚠️",
             "color": "#f1c40f",
-            "message": "你有部分量感，但仍低估了時間放大效應。實際複利終值通常比你的估算高不少。",
+            "message": "You have partial intuition, but still underestimate the time-amplification effect. The compound future value is meaningfully higher than your estimate.",
         }
     if estimate < near_min:
         return {
-            "key": "serious", "label": "嚴重低估", "emoji": "🚨",
+            "key": "serious", "label": "Severe underestimate", "emoji": "🚨",
             "color": "#f39c12",
-            "message": "你的估算接近甚至低於本金總額。這代表你傾向線性本金思維，未能把時間視為放大金錢的金融變量。",
+            "message": "Your estimate is close to or even below the principal sum (MOP $64,800). This suggests linear-principal thinking — treating time as neutral rather than as a variable that compounds money.",
         }
     # estimate > correct_max
     return {
-        "key": "over", "label": "高估", "emoji": "⬆️",
+        "key": "over", "label": "Overestimate", "emoji": "⬆️",
         "color": "#5c6bc0",
-        "message": "你的估算高於嚴格正確區間。雖然高估方向上不算盲點，但實際上 8% 年回報並非保證，且涉及波動、流動性與費用，請留意風險不確定性。",
+        "message": "Your estimate is above the strict correct band. Overestimation is not itself a blind spot, but an 8% annual return is not guaranteed. Real investing involves volatility, liquidity, and fees — keep that uncertainty in mind.",
     }
 
 
 def gap_message(estimate: Optional[float], future_value: float) -> tuple[str, str, str]:
     """Return (gap_text, gap_description, color) comparing estimate to FV."""
     if estimate is None:
-        return ("—", "未估算，無法計算差距", "#95a5a6")
+        return ("—", "No estimate provided — gap cannot be calculated", "#95a5a6")
     diff = future_value - estimate
     pct_off = diff / future_value * 100 if future_value else 0
     if abs(pct_off) < 1:
-        return ("≈ MOP $0", "你的估算幾乎完全正確", "#27ae60")
+        return ("≈ MOP $0", "Your estimate is nearly exact", "#27ae60")
     if diff > 0:
-        return (f"-{_fmt_mop(diff)}", f"低估了 {pct_off:.1f}% 的複利終值", "#b9770c")
-    return (f"+{_fmt_mop(-diff)}", f"高估了 {-pct_off:.1f}% 的複利終值", "#5c6bc0")
+        return (f"-{_fmt_mop(diff)}", f"Underestimated the compound future value by {pct_off:.1f}%", "#b9770c")
+    return (f"+{_fmt_mop(-diff)}", f"Overestimated the compound future value by {-pct_off:.1f}%", "#5c6bc0")
 
 
 def _fmt_mop(n: float) -> str:

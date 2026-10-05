@@ -61,31 +61,37 @@ def test_total_principal_simple():
 def test_classify_unknown_for_none():
     result = classify_estimate(None)
     assert result["key"] == "unknown"
+    assert result["label"] == "Don't know"
 
 
 def test_classify_unknown_for_zero():
     result = classify_estimate(0)
     assert result["key"] == "unknown"
+    assert result["label"] == "Don't know"
 
 
 def test_classify_correct_in_range():
     result = classify_estimate(150_000)
     assert result["key"] == "correct"
+    assert result["label"] == "Correct magnitude"
 
 
 def test_classify_near_below_correct():
     result = classify_estimate(80_000)
     assert result["key"] == "near"
+    assert result["label"] == "Near but low"
 
 
 def test_classify_serious_below_near():
     result = classify_estimate(30_000)
     assert result["key"] == "serious"
+    assert result["label"] == "Severe underestimate"
 
 
 def test_classify_over_above_correct():
     result = classify_estimate(300_000)
     assert result["key"] == "over"
+    assert result["label"] == "Overestimate"
 
 
 # === gap_message ===
