@@ -21,6 +21,7 @@ st.set_page_config(
     page_title="CIII Diagnostic Tool — TVB-20",
     page_icon="⏱️",
     initial_sidebar_state="expanded",
+    layout="wide",
 )
 
 CUSTOM_CSS = """
@@ -72,24 +73,14 @@ estimate_input = st.number_input(
 )
 estimate = estimate_input if estimate_input > 0 else None
 
-col_a, col_b = st.columns([3, 1])
-with col_a:
-    diagnose_clicked = st.button("🔍 Submit estimate → Calculate", type="primary", use_container_width=True)
-with col_b:
-    if st.button("🔄 Reset", use_container_width=True):
-        st.rerun()
 
-
-if diagnose_clicked or (estimate is not None and estimate > 0):
-    result = classify_estimate(estimate)
-    gap_text, gap_desc, gap_color = gap_message(estimate, fv)
-
-    # ─── Animation block rendered FIRST so the chart appears directly under
-    # the Submit button, before the result banner.
+# ─── Animation chart: rendered BETWEEN the input and the Submit button so
+# the user can see the chart react as soon as they type.
+def _render_animation_chart(pmt, annual_rate, years, estimate):
     st.subheader("🎞️ Animation: the time-amplification effect")
     st.caption(
-        f"Scrub the year slider, or press ▶ Play. Watch the dashed grey "
-        f"(principal-only baseline) versus the blue compound line."
+        "Scrub the year slider, or press ▶ Play. Watch the dashed grey "
+        "(principal-only baseline) versus the blue compound line."
     )
 
     @st.cache_data
@@ -100,9 +91,8 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
         st.session_state.frame_year = years
     if "autoplay_year" not in st.session_state:
         # Drive the slider's value during autoplay without touching the
-        # slider's own key. Streamlit forbids writing to a widget key after
-        # the widget is instantiated, so the autoplay loop writes here, and
-        # the slider below takes `value=st.session_state.autoplay_year`.
+        # slider's own key — Streamlit forbids writing to a widget key
+        # after the widget has been instantiated.
         st.session_state.autoplay_year = st.session_state.frame_year
     if "playing" not in st.session_state:
         st.session_state.playing = False
@@ -115,12 +105,9 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
     def _on_pause():
         st.session_state.playing = False
 
-    # While playing, drive the slider via autoplay_year; otherwise mirror
-    # whatever the user last set on the slider itself.
     if st.session_state.playing and st.session_state.autoplay_year < years:
         slider_value = st.session_state.autoplay_year + 1
     elif st.session_state.playing and st.session_state.autoplay_year >= years:
-        # Reached the end naturally; freeze the slider at the final frame.
         slider_value = years
         st.session_state.playing = False
     else:
@@ -137,9 +124,6 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
     with ctrl_c:
         st.markdown(f"**{frame} / {years} yr**")
 
-    # Keep autoplay_year in sync with the slider's new value (only when not
-    # actively driving it above), so a Pause or end-of-animation leaves the
-    # playhead consistent with the slider.
     if not st.session_state.playing:
         st.session_state.autoplay_year = frame
 
@@ -152,23 +136,21 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
     years_axis = [m / 12 for m in curve["months"][:end_idx]]
 
     fig = go.Figure()
-    # Principal-only baseline (linear, dotted grey) as a reference.
     fig.add_trace(go.Scatter(
         x=years_axis, y=curve["principal"][:end_idx], mode="lines",
         name="Principal only",
         line=dict(color="#95a5a6", width=2, dash="dot"),
     ))
-    # Compound curve at the user's chosen scenario rate.
     fig.add_trace(go.Scatter(
         x=years_axis, y=curve["compound"][:end_idx], mode="lines",
         name=f"Compound at {annual_rate*100:.1f}%",
         line=dict(color="#3498db", width=3),
     ))
 
-    # User's estimate — horizontal line across the full timeline.
-    # Annotated at the right edge so it doesn't overlap the title/legend area.
     if estimate is not None:
-        est_color = result["color"]
+        # Show the estimate line with the classification color even before
+        # Submit is pressed — instant visual feedback as the user types.
+        est_color = classify_estimate(estimate)["color"]
         fig.add_hline(
             y=estimate, line_dash="dash", line_color=est_color, line_width=3,
             annotation_text=f"Your estimate: ${estimate:,.0f}",
@@ -178,8 +160,6 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
             annotation_font=dict(size=12, color=est_color),
         )
 
-    # Correct-magnitude band annotation pinned inside-top-right so it does
-    # not collide with the chart title or the estimate label.
     fig.add_hrect(
         y0=120_000, y1=200_000,
         fillcolor="#27ae60", opacity=0.08, line_width=0,
@@ -219,8 +199,22 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
         ),
         margin=dict(t=60, b=80, l=70, r=180),
     )
-
     st.plotly_chart(fig, use_container_width=True)
+
+
+_render_animation_chart(pmt, annual_rate, years, estimate)
+
+col_a, col_b = st.columns([3, 1])
+with col_a:
+    diagnose_clicked = st.button("🔍 Submit estimate → Calculate", type="primary", use_container_width=True)
+with col_b:
+    if st.button("🔄 Reset", use_container_width=True):
+        st.rerun()
+
+
+if diagnose_clicked:
+    result = classify_estimate(estimate)
+    gap_text, gap_desc, gap_color = gap_message(estimate, fv)
 
     st.markdown(
         f'<div class="result-banner {result["key"]}"><h3>{result["emoji"]} {result["label"]}</h3>'
