@@ -23,6 +23,14 @@ st.set_page_config(
 
 CUSTOM_CSS = """
 <style>
+    /* Tighter header area so the title and main content sit close to the top. */
+    .block-container { padding-top: 1rem !important; }
+    [data-testid="stAppViewContainer"] .main { padding-top: 0 !important; }
+
+    /* Small app title — single line on narrow viewports. */
+    .app-title { font-size: 18px; font-weight: 600; margin: 0 0 4px 0; padding: 0; line-height: 1.2; }
+    .app-subtitle { font-size: 13px; color: #6c7a89; margin: 0 0 12px 0; padding: 0; line-height: 1.2; }
+
     .result-banner { padding: 20px; border-radius: 10px; text-align: center; font-size: 16px; }
     .result-banner.unknown { background: #ffe8e3; color: #c0392b; border: 2px solid #e74c3c; }
     .result-banner.serious { background: #fff3cd; color: #b9770c; border: 2px solid #f39c12; }
@@ -54,7 +62,7 @@ with st.sidebar:
 PRINCIPAL = total_principal(pmt, years)
 fv = future_value_monthly_payment(pmt, annual_rate, years)
 
-st.title("⏱️ CIII Diagnostic Tool")
+st.markdown('<div class="app-title">⏱️ CIII Diagnostic Tool</div>', unsafe_allow_html=True)
 
 st.subheader("Step 1: Enter your estimate")
 st.markdown(
@@ -154,7 +162,8 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
     st.plotly_chart(fig, use_container_width=True)
 
 
-_render_animation_chart(pmt, annual_rate, years, estimate)
+if estimate is not None:
+    _render_animation_chart(pmt, annual_rate, years, estimate)
 
 col_a, col_b = st.columns([3, 1])
 with col_a:
