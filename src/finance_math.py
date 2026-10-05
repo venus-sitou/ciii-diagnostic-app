@@ -141,10 +141,36 @@ def growth_curve(
     return {"months": months, "principal": principal, "compound": compound}
 
 
+def multi_rate_growth_curve(
+    payment: float,
+    rates,
+    years: int,
+    steps_per_year: int = 12,
+) -> dict:
+    """Compute month-by-month growth trajectories for multiple annual rates.
+
+    A thin wrapper that calls :func:`growth_curve` once per rate. Used by the
+    multi-curve animated chart so that different rate scenarios (e.g. 0%, 4%,
+    8%, 12%) can be plotted on the same time axis without recomputation.
+
+    Args:
+        payment: monthly contribution amount.
+        rates: iterable of nominal annual rates as decimals (e.g. [0.04, 0.08]).
+        years: investment horizon in years.
+        steps_per_year: compounding frequency per year (default monthly = 12).
+
+    Returns:
+        Dict mapping each input rate to the dict produced by
+        :func:`growth_curve` for that rate.
+    """
+    return {r: growth_curve(payment, r, years, steps_per_year) for r in rates}
+
+
 __all__ = [
     "future_value_monthly_payment",
     "total_principal",
     "classify_estimate",
     "gap_message",
     "growth_curve",
+    "multi_rate_growth_curve",
 ]

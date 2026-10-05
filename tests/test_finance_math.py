@@ -11,6 +11,7 @@ from src.finance_math import (
     future_value_monthly_payment,
     gap_message,
     growth_curve,
+    multi_rate_growth_curve,
     total_principal,
 )
 
@@ -145,3 +146,27 @@ def test_growth_curve_zero_rate():
 def test_growth_curve_compound_grows_faster():
     g = growth_curve(300, 0.08, 18)
     assert g["compound"][-1] > g["principal"][-1]
+
+
+# === multi_rate_growth_curve ===
+
+def test_multi_rate_growth_curve_returns_dict_per_rate():
+    rates = [0.00, 0.04, 0.08, 0.12]
+    curves = multi_rate_growth_curve(payment=300, rates=rates, years=18)
+    assert set(curves.keys()) == {0.00, 0.04, 0.08, 0.12}
+
+
+def test_multi_rate_growth_curve_matches_single_rate_calls():
+    rates = [0.00, 0.04, 0.08, 0.12]
+    curves = multi_rate_growth_curve(payment=300, rates=rates, years=18)
+    for r in rates:
+        single = growth_curve(payment=300, annual_rate=r, years=18)
+        assert curves[r]["months"] == single["months"]
+        assert curves[r]["compound"] == single["compound"]
+
+
+def test_multi_rate_growth_curve_length():
+    curves = multi_rate_growth_curve(payment=300, rates=[0.04, 0.08], years=18)
+    for r in curves:
+        assert len(curves[r]["months"]) == 18 * 12 + 1
+        assert len(curves[r]["compound"]) == len(curves[r]["months"])
