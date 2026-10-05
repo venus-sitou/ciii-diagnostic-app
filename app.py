@@ -90,25 +90,7 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
         unsafe_allow_html=True,
     )
 
-    st.subheader("Diagnostic details")
-    c1, c2, c3 = st.columns(3)
-    with c1: st.metric("Total principal", f"MOP ${PRINCIPAL:,.0f}")
-    with c2: st.metric("Compound future value", f"MOP ${fv:,.0f}")
-    with c3: st.metric("Your estimate", "Not entered" if estimate is None else f"MOP ${estimate:,.0f}")
-
-    st.markdown(
-        f'<div class="gap-display" style="background: {gap_color}22; color: {gap_color};">'
-        f'<div style="font-size:13px; opacity:0.8;">Gap between your estimate and the compound future value</div>'
-        f'<div style="font-size:28px; font-weight:700; margin:6px 0;">{gap_text}</div>'
-        f'<div style="font-size:13px;">{gap_desc}</div></div>',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        f'<div class="personal-msg"><strong>💡 Personalised insight:</strong> {result["message"]}</div>',
-        unsafe_allow_html=True,
-    )
-
+    # ─── Animation block (placed first, right under the button) ───
     st.subheader("🎞️ Animation: the time-amplification effect")
     st.caption(
         "Scrub the year slider, or press ▶ Play. The same monthly contribution "
@@ -176,10 +158,16 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
             ),
         ))
 
+    # User's estimate — horizontal line across the full timeline.
+    # Drawn thicker and labelled at the start so it's visible at every frame.
     if estimate is not None:
-        fig.add_hline(y=estimate, line_dash="dash",
-                      line_color=classify_estimate(estimate)["color"], line_width=2,
-                      annotation_text="Your estimate", annotation_position="right")
+        est_color = result["color"]
+        fig.add_hline(
+            y=estimate, line_dash="dash", line_color=est_color, line_width=3,
+            annotation_text=f"Your estimate: MOP ${estimate:,.0f}",
+            annotation_position="top left",
+            annotation_font=dict(size=12, color=est_color),
+        )
 
     fig.add_hrect(y0=120_000, y1=200_000,
                   fillcolor="#27ae60", opacity=0.08, line_width=0,
@@ -203,6 +191,26 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    # ─── Diagnostic details (now BELOW the chart) ───
+    st.subheader("📊 Diagnostic details")
+    c1, c2, c3 = st.columns(3)
+    with c1: st.metric("Total principal", f"MOP ${PRINCIPAL:,.0f}")
+    with c2: st.metric("Compound future value", f"MOP ${fv:,.0f}")
+    with c3: st.metric("Your estimate", "Not entered" if estimate is None else f"MOP ${estimate:,.0f}")
+
+    st.markdown(
+        f'<div class="gap-display" style="background: {gap_color}22; color: {gap_color};">'
+        f'<div style="font-size:13px; opacity:0.8;">Gap between your estimate and the compound future value</div>'
+        f'<div style="font-size:28px; font-weight:700; margin:6px 0;">{gap_text}</div>'
+        f'<div style="font-size:13px;">{gap_desc}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f'<div class="personal-msg"><strong>💡 Personalised insight:</strong> {result["message"]}</div>',
+        unsafe_allow_html=True,
+    )
 
     st.subheader("📋 Classification guide")
     legend_data = [
