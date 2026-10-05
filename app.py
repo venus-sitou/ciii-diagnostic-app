@@ -89,9 +89,11 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
     def _scenario_curve(p: float, y: int, r: float) -> dict:
         return growth_curve(p, r, y)
 
-    # Auto-play animation: when the chart appears, animate from year 0 to
-    # years over ~0.1s per year (~1.8s total for an 18-year scenario).
-    # No user-facing controls — the animation runs once automatically.
+    # Auto-play animation: when the chart appears, animate the compound
+    # curve growing from year 0 to the chosen horizon. The principal-only
+    # baseline is drawn at full extent from frame 0 so the chart is
+    # visible immediately and the blue compound line grows into view.
+    # ~0.2s per frame, ~3.6s total for an 18-year scenario.
     if "frame_year" not in st.session_state:
         st.session_state.frame_year = 0
     if "animating" not in st.session_state:
@@ -100,17 +102,21 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
     frame = st.session_state.frame_year
 
     curve = _scenario_curve(pmt, years, annual_rate)
-    end_idx = min(frame * 12 + 1, len(curve["months"]))
-    years_axis = [m / 12 for m in curve["months"][:end_idx]]
+    full_end_idx = len(curve["months"])
+    full_years_axis = [m / 12 for m in curve["months"][:full_end_idx]]
+
+    # Compound curve is sliced to the current frame; principal is full.
+    compound_end = min(frame * 12 + 1, full_end_idx)
+    compound_x = full_years_axis[:compound_end]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=years_axis, y=curve["principal"][:end_idx], mode="lines",
+        x=full_years_axis, y=curve["principal"][:full_end_idx], mode="lines",
         name="Principal only",
         line=dict(color="#95a5a6", width=2, dash="dot"),
     ))
     fig.add_trace(go.Scatter(
-        x=years_axis, y=curve["compound"][:end_idx], mode="lines",
+        x=compound_x, y=curve["compound"][:compound_end], mode="lines",
         name=f"At {annual_rate*100:.0f}%",
         line=dict(color="#3498db", width=3),
     ))
@@ -141,16 +147,17 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
 
     # The star follows the current animation frame so the user sees the
     # compound future value growing in lockstep with the curve.
-    fv_at_frame = curve["compound"][end_idx - 1]
-    fig.add_trace(go.Scatter(
-        x=[frame], y=[fv_at_frame], mode="markers+text",
-        marker=dict(size=14, color="#e74c3c", symbol="star"),
-        text=[f"FV ${fv_at_frame:,.0f}"],
-        textposition="top center",
-        textfont=dict(size=11, color="#c0392b"),
-        showlegend=False, hoverinfo="skip",
-        cliponaxis=False,
-    ))
+    fv_at_frame = curve["compound"][compound_end - 1] if compound_end > 0 else 0
+    if frame > 0:
+        fig.add_trace(go.Scatter(
+            x=[frame], y=[fv_at_frame], mode="markers+text",
+            marker=dict(size=14, color="#e74c3c", symbol="star"),
+            text=[f"FV ${fv_at_frame:,.0f}"],
+            textposition="top center",
+            textfont=dict(size=11, color="#c0392b"),
+            showlegend=False, hoverinfo="skip",
+            cliponaxis=False,
+        ))
 
     fig.update_layout(
         title=dict(
@@ -182,11 +189,28 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
     # end of the timeline. The user sees the curve draw itself; no UI
     # controls are exposed.
     if st.session_state.animating and st.session_state.frame_year < years:
-        time.sleep(0.1)
+        time.sleep(0.2)
         st.session_state.frame_year += 1
         st.rerun()
     elif st.session_state.frame_year >= years:
         st.session_state.animating = False
+
+    # If the user changes a sidebar input AFTER the animation finishes
+    # (years, PMT, rate), reset and replay so the new scenario animates too.
+    if (
+        not st.session_state.animating
+        and estimate is not None
+        and st.session_state.frame_year >= years
+    ):
+        # Detect param change via st.session_state's prior signature
+        sig = (pmt, annual_rate, years)
+        if st.session_state.get("_last_sig") != sig:
+            st.session_state._last_sig = sig
+            st.session_state.frame_year = 0
+            st.session_state.animating = True
+            st.rerun()
+    elif estimate is not None:
+        st.session_state._last_sig = (pmt, annual_rate, years)
 
 
 if estimate is not None:
