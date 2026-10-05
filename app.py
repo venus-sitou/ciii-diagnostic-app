@@ -3,8 +3,6 @@
 Run with: streamlit run app.py
 """
 
-import time
-
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -57,7 +55,6 @@ PRINCIPAL = total_principal(pmt, years)
 fv = future_value_monthly_payment(pmt, annual_rate, years)
 
 st.title("⏱️ CIII Diagnostic Tool")
-st.caption("Time-Value Blind Spots — TVB-20 Prototype")
 
 st.subheader("Step 1: Enter your estimate")
 st.markdown(
@@ -76,62 +73,12 @@ estimate = estimate_input if estimate_input > 0 else None
 # ─── Animation chart: rendered BETWEEN the input and the Submit button so
 # the user can see the chart react as soon as they type.
 def _render_animation_chart(pmt, annual_rate, years, estimate):
-    st.subheader("🎞️ Animation: the time-amplification effect")
-    st.caption(
-        "Scrub the year slider, or press ▶ Play. Watch the dashed grey "
-        "(principal-only baseline) versus the blue compound line."
-    )
-
     @st.cache_data
     def _scenario_curve(p: float, y: int, r: float) -> dict:
         return growth_curve(p, r, y)
 
-    if "frame_year" not in st.session_state:
-        st.session_state.frame_year = years
-    if "autoplay_year" not in st.session_state:
-        # Drive the slider's value during autoplay without touching the
-        # slider's own key — Streamlit forbids writing to a widget key
-        # after the widget has been instantiated.
-        st.session_state.autoplay_year = st.session_state.frame_year
-    if "playing" not in st.session_state:
-        st.session_state.playing = False
-
-    def _on_play():
-        if st.session_state.autoplay_year >= years:
-            st.session_state.autoplay_year = 0
-        st.session_state.playing = True
-
-    def _on_pause():
-        st.session_state.playing = False
-
-    if st.session_state.playing and st.session_state.autoplay_year < years:
-        slider_value = st.session_state.autoplay_year + 1
-    elif st.session_state.playing and st.session_state.autoplay_year >= years:
-        slider_value = years
-        st.session_state.playing = False
-    else:
-        slider_value = st.session_state.frame_year
-
-    ctrl_a, ctrl_b, ctrl_c = st.columns([6, 1, 1])
-    with ctrl_a:
-        frame = st.slider("Year", 0, years, value=slider_value, key="frame_year")
-    with ctrl_b:
-        if not st.session_state.playing:
-            st.button("▶ Play", use_container_width=True, on_click=_on_play)
-        else:
-            st.button("⏸ Pause", use_container_width=True, on_click=_on_pause)
-    with ctrl_c:
-        st.markdown(f"**{frame} / {years} yr**")
-
-    if not st.session_state.playing:
-        st.session_state.autoplay_year = frame
-
-    if st.session_state.playing and frame < years:
-        time.sleep(0.1)
-        st.rerun()
-
     curve = _scenario_curve(pmt, years, annual_rate)
-    end_idx = min(frame * 12 + 1, len(curve["months"]))
+    end_idx = len(curve["months"])
     years_axis = [m / 12 for m in curve["months"][:end_idx]]
 
     fig = go.Figure()
@@ -170,21 +117,20 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
         annotation_xshift=-8, annotation_yshift=-4,
     )
 
-    if frame > 0:
-        fv_at_frame = curve["compound"][end_idx - 1]
-        fig.add_trace(go.Scatter(
-            x=[frame], y=[fv_at_frame], mode="markers+text",
-            marker=dict(size=14, color="#e74c3c", symbol="star"),
-            text=[f"FV ${fv_at_frame:,.0f}"],
-            textposition="top center",
-            textfont=dict(size=11, color="#c0392b"),
-            showlegend=False, hoverinfo="skip",
-            cliponaxis=False,
-        ))
+    fv = curve["compound"][end_idx - 1]
+    fig.add_trace(go.Scatter(
+        x=[years], y=[fv], mode="markers+text",
+        marker=dict(size=14, color="#e74c3c", symbol="star"),
+        text=[f"FV ${fv:,.0f}"],
+        textposition="top center",
+        textfont=dict(size=11, color="#c0392b"),
+        showlegend=False, hoverinfo="skip",
+        cliponaxis=False,
+    ))
 
     fig.update_layout(
         title=dict(
-            text=f"Year {frame} of {years} · ${pmt:,.0f}/mo @ {annual_rate*100:.1f}%",
+            text=f"{years}-year growth · ${pmt:,.0f}/mo @ {annual_rate*100:.1f}%",
             x=0.02, xanchor="left",
             y=0.97, yanchor="top",
             font=dict(size=14),
