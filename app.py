@@ -44,7 +44,7 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 with st.sidebar:
     st.header("⚙️ Scenario parameters")
-    pmt = st.number_input("Monthly contribution (MOP)", min_value=50, max_value=5000, value=300, step=50)
+    pmt = st.number_input("Monthly contribution ($)", min_value=50, max_value=5000, value=300, step=50)
     annual_rate = st.slider("Annual return rate (%)", 0.0, 15.0, 8.0, 0.5) / 100
     years = st.slider("Years", 1, 40, 18)
     st.caption(
@@ -61,14 +61,14 @@ st.caption("Time-Value Blind Spots — TVB-20 Prototype")
 
 st.subheader("Step 1: Enter your estimate")
 st.markdown(
-    f"**Scenario:** Starting now, suppose you save or invest **MOP ${pmt:,.0f}** every month "
+    f"**Scenario:** Starting now, suppose you save or invest **${pmt:,.0f}** every month "
     f"at an annual return of **{annual_rate*100:.1f}%**. Roughly how much will this sum grow to "
     f"after **{years} years**?"
 )
 
 estimate_input = st.number_input(
-    "Your estimate (MOP)", min_value=0, max_value=10_000_000, value=0, step=1000,
-    help=f"Hint: the principal sum alone is MOP ${PRINCIPAL:,.0f}.",
+    "Your estimate ($)", min_value=0, max_value=10_000_000, value=0, step=1000,
+    help=f"Hint: the principal sum alone is ${PRINCIPAL:,.0f}.",
 )
 estimate = estimate_input if estimate_input > 0 else None
 
@@ -84,13 +84,8 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
     result = classify_estimate(estimate)
     gap_text, gap_desc, gap_color = gap_message(estimate, fv)
 
-    st.markdown(
-        f'<div class="result-banner {result["key"]}"><h3>{result["emoji"]} {result["label"]}</h3>'
-        f'<p>{result["label"]} category — cognitive diagnostic recorded</p></div>',
-        unsafe_allow_html=True,
-    )
-
-    # ─── Animation block (placed first, right under the button) ───
+    # ─── Animation block rendered FIRST so the chart appears directly under
+    # the Submit button, before the result banner.
     st.subheader("🎞️ Animation: the time-amplification effect")
     st.caption(
         "Scrub the year slider, or press ▶ Play. The same monthly contribution "
@@ -186,7 +181,7 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
         est_color = result["color"]
         fig.add_hline(
             y=estimate, line_dash="dash", line_color=est_color, line_width=3,
-            annotation_text=f"Your estimate: MOP ${estimate:,.0f}",
+            annotation_text=f"Your estimate: ${estimate:,.0f}",
             annotation_position="top left",
             annotation_font=dict(size=12, color=est_color),
         )
@@ -200,26 +195,32 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
         fig.add_trace(go.Scatter(
             x=[frame], y=[fv_at_frame], mode="markers+text",
             marker=dict(size=14, color="#e74c3c", symbol="star"),
-            text=[f"FV at year {frame}<br>MOP ${fv_at_frame:,.0f}"],
+            text=[f"FV at year {frame}<br>${fv_at_frame:,.0f}"],
             textposition="top center",
             textfont=dict(size=11, color="#c0392b"), showlegend=False,
         ))
 
     fig.update_layout(
-        title=f"Growth through year {frame} of {years} — same MOP ${pmt:,.0f}/mo at different rates",
-        xaxis_title="Years", yaxis_title="MOP", hovermode="x unified",
+        title=f"Growth through year {frame} of {years} — same ${pmt:,.0f}/mo at different rates",
+        xaxis_title="Years", yaxis_title="$", hovermode="x unified",
         template="plotly_white", height=520,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # ─── Diagnostic details (now BELOW the chart) ───
+    st.markdown(
+        f'<div class="result-banner {result["key"]}"><h3>{result["emoji"]} {result["label"]}</h3>'
+        f'<p>{result["label"]} category — cognitive diagnostic recorded</p></div>',
+        unsafe_allow_html=True,
+    )
+
+    # ─── Diagnostic details (below the chart) ───
     st.subheader("📊 Diagnostic details")
     c1, c2, c3 = st.columns(3)
-    with c1: st.metric("Total principal", f"MOP ${PRINCIPAL:,.0f}")
-    with c2: st.metric("Compound future value", f"MOP ${fv:,.0f}")
-    with c3: st.metric("Your estimate", "Not entered" if estimate is None else f"MOP ${estimate:,.0f}")
+    with c1: st.metric("Total principal", f"${PRINCIPAL:,.0f}")
+    with c2: st.metric("Compound future value", f"${fv:,.0f}")
+    with c3: st.metric("Your estimate", "Not entered" if estimate is None else f"${estimate:,.0f}")
 
     st.markdown(
         f'<div class="gap-display" style="background: {gap_color}22; color: {gap_color};">'
@@ -236,18 +237,18 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
 
     st.subheader("📋 Classification guide")
     legend_data = [
-        ("✅ Correct magnitude", "MOP $120,000 – $200,000"),
-        ("⚠️ Near but low", "MOP $60,000 – $120,000"),
-        ("🚨 Severe underestimate", "Below MOP $60,000"),
+        ("✅ Correct magnitude", "$120,000 – $200,000"),
+        ("⚠️ Near but low", "$60,000 – $120,000"),
+        ("🚨 Severe underestimate", "Below $60,000"),
         ("❓ Don't know", "No estimate entered"),
-        ("⬆️ Overestimate", "Above MOP $200,000"),
+        ("⬆️ Overestimate", "Above $200,000"),
     ]
     for emoji_label, range_text in legend_data:
         st.markdown(f"- **{emoji_label}** ({range_text})")
 
     st.caption(
         f"**Formula**: FV = PMT × [((1+r)ⁿ − 1) / r], "
-        f"PMT=MOP ${pmt}, r={annual_rate:.3f}, n={years*12}"
+        f"PMT=${pmt}, r={annual_rate:.3f}, n={years*12}"
     )
 
     st.subheader("📚 Educational significance")
