@@ -26,11 +26,24 @@ st.set_page_config(
 
 CUSTOM_CSS = """
 <style>
-    /* Force the main block to fill the available width, overriding any
-       narrower default Streamlit applies even with layout='wide'. */
-    .block-container { max-width: 100% !important; padding-left: 2rem !important; padding-right: 2rem !important; }
+    /* Force the main block to fill the available width with minimal padding.
+       On narrow viewports (<~1000px) Streamlit otherwise still caps the main
+       block at the centred-column width even with layout='wide'. We zero out
+       the internal padding and max-width so the chart consumes the full
+       viewport minus the sidebar. */
+    .block-container { max-width: 100% !important; padding-left: 1rem !important; padding-right: 1rem !important; }
     [data-testid="stAppViewContainer"] .main .block-container { max-width: 100% !important; }
     .element-container { width: 100% !important; }
+    /* Plotly charts: ensure the figure wrapper takes full container width */
+    .stPlotlyChart { width: 100% !important; }
+    .stPlotlyChart > div { width: 100% !important; }
+
+    /* Auto-collapse the sidebar on narrow viewports so it doesn't eat half
+       the screen. Streamlit's default behaviour is to leave it open. */
+    @media (max-width: 1000px) {
+        [data-testid="stSidebar"][aria-expanded="true"] { display: none !important; }
+        [data-testid="stSidebarNav"][aria-expanded="true"] { display: none !important; }
+    }
 
     .result-banner { padding: 20px; border-radius: 10px; text-align: center; font-size: 16px; }
     .result-banner.unknown { background: #ffe8e3; color: #c0392b; border: 2px solid #e74c3c; }
