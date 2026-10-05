@@ -42,7 +42,9 @@ CUSTOM_CSS = """
         padding: 16px;
         background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
         border-radius: 8px; border-left: 4px solid #3498db; line-height: 1.8;
+        color: #2c3e50;
     }
+    .personal-msg strong { color: #2980b9; }
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
