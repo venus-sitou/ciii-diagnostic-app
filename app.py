@@ -113,31 +113,53 @@ if diagnose_clicked or (estimate is not None and estimate > 0):
 
     if "frame_year" not in st.session_state:
         st.session_state.frame_year = years
+    if "autoplay_year" not in st.session_state:
+        # Drive the slider's value during autoplay without touching the
+        # slider's own key. Streamlit forbids writing to a widget key after
+        # the widget is instantiated, so the autoplay loop writes here, and
+        # the slider below takes `value=st.session_state.autoplay_year`.
+        st.session_state.autoplay_year = st.session_state.frame_year
     if "playing" not in st.session_state:
         st.session_state.playing = False
 
+    def _on_play():
+        if st.session_state.autoplay_year >= years:
+            st.session_state.autoplay_year = 0
+        st.session_state.playing = True
+
+    def _on_pause():
+        st.session_state.playing = False
+
+    # While playing, drive the slider via autoplay_year; otherwise mirror
+    # whatever the user last set on the slider itself.
+    if st.session_state.playing and st.session_state.autoplay_year < years:
+        slider_value = st.session_state.autoplay_year + 1
+    elif st.session_state.playing and st.session_state.autoplay_year >= years:
+        # Reached the end naturally; freeze the slider at the final frame.
+        slider_value = years
+        st.session_state.playing = False
+    else:
+        slider_value = st.session_state.frame_year
+
     ctrl_a, ctrl_b, ctrl_c = st.columns([6, 1, 1])
     with ctrl_a:
-        frame = st.slider("Year", 0, years, key="frame_year")
+        frame = st.slider("Year", 0, years, value=slider_value, key="frame_year")
     with ctrl_b:
         if not st.session_state.playing:
-            if st.button("▶ Play", use_container_width=True):
-                if st.session_state.frame_year >= years:
-                    st.session_state.frame_year = 0
-                st.session_state.playing = True
-                st.rerun()
+            st.button("▶ Play", use_container_width=True, on_click=_on_play)
         else:
-            if st.button("⏸ Pause", use_container_width=True):
-                st.session_state.playing = False
-                st.rerun()
+            st.button("⏸ Pause", use_container_width=True, on_click=_on_pause)
     with ctrl_c:
         st.markdown(f"**{frame} / {years} yr**")
 
-    if st.session_state.playing and st.session_state.frame_year < years:
+    # Keep autoplay_year in sync with the slider's new value (only when not
+    # actively driving it above), so a Pause or end-of-animation leaves the
+    # playhead consistent with the slider.
+    if not st.session_state.playing:
+        st.session_state.autoplay_year = frame
+
+    if st.session_state.playing and frame < years:
         time.sleep(0.1)
-        st.session_state.frame_year += 1
-        if st.session_state.frame_year >= years:
-            st.session_state.playing = False
         st.rerun()
 
     curves = _multi_curve(pmt, years)
