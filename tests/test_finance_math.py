@@ -105,14 +105,14 @@ def test_gap_message_estimate_close():
 
 def test_gap_message_estimate_low():
     gap_text, desc, color = gap_message(estimate=50_000, future_value=144_026)
-    assert "MOP" in gap_text
+    assert "$" in gap_text
     assert "%" in desc
     assert color == "#b9770c"
 
 
 def test_gap_message_estimate_high():
     gap_text, desc, color = gap_message(estimate=200_000, future_value=144_026)
-    assert "MOP" in gap_text
+    assert "$" in gap_text
     assert "%" in desc
     assert color == "#5c6bc0"
 

@@ -59,7 +59,7 @@ def classify_estimate(
     """Classify a student's compound-interest estimate into one of five categories.
 
     The thresholds are *teaching defaults*, calibrated to a baseline scenario
-    of MOP $300/month, 18 years, 8% annual return (FV ≈ MOP $144,026).
+    of $300/month, 18 years, 8% annual return (FV ≈ $144,026).
     Adjust them when the baseline scenario changes.
 
     Args:
@@ -92,7 +92,7 @@ def classify_estimate(
         return {
             "key": "serious", "label": "Severe underestimate", "emoji": "🚨",
             "color": "#f39c12",
-            "message": "Your estimate is close to or even below the principal sum (MOP $64,800). This suggests linear-principal thinking — treating time as neutral rather than as a variable that compounds money.",
+            "message": "Your estimate is close to or even below the principal sum ($64,800). This suggests linear-principal thinking — treating time as neutral rather than as a variable that compounds money.",
         }
     # estimate > correct_max
     return {
@@ -109,14 +109,14 @@ def gap_message(estimate: Optional[float], future_value: float) -> tuple[str, st
     diff = future_value - estimate
     pct_off = diff / future_value * 100 if future_value else 0
     if abs(pct_off) < 1:
-        return ("≈ MOP $0", "Your estimate is nearly exact", "#27ae60")
+        return ("≈ $0", "Your estimate is nearly exact", "#27ae60")
     if diff > 0:
         return (f"-{_fmt_mop(diff)}", f"Underestimated the compound future value by {pct_off:.1f}%", "#b9770c")
     return (f"+{_fmt_mop(-diff)}", f"Overestimated the compound future value by {-pct_off:.1f}%", "#5c6bc0")
 
 
 def _fmt_mop(n: float) -> str:
-    return f"MOP ${round(n):,}"
+    return f"${round(n):,}"
 
 
 def growth_curve(
