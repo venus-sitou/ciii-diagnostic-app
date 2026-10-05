@@ -150,12 +150,15 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
         # Show the estimate line with the classification color even before
         # Submit is pressed — instant visual feedback as the user types.
         est_color = classify_estimate(estimate)["color"]
+        # Place the label INSIDE the plot area (top-left of the line) so the
+        # chart's right margin can stay small and the figure fills the
+        # viewport on narrow screens.
         fig.add_hline(
             y=estimate, line_dash="dash", line_color=est_color, line_width=3,
             annotation_text=f"Your estimate: ${estimate:,.0f}",
-            annotation_position="top right",
-            annotation_xshift=-10,
-            annotation_yshift=10,
+            annotation_position="top left",
+            annotation_xshift=8,
+            annotation_yshift=8,
             annotation_font=dict(size=12, color=est_color),
         )
 
@@ -173,7 +176,7 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
             x=[frame], y=[fv_at_frame], mode="markers+text",
             marker=dict(size=14, color="#e74c3c", symbol="star"),
             text=[f"FV ${fv_at_frame:,.0f}"],
-            textposition="middle left",
+            textposition="top center",
             textfont=dict(size=11, color="#c0392b"),
             showlegend=False, hoverinfo="skip",
             cliponaxis=False,
@@ -196,7 +199,11 @@ def _render_animation_chart(pmt, annual_rate, years, estimate):
             xanchor="center", x=0.5,
             font=dict(size=11),
         ),
-        margin=dict(t=60, b=80, l=70, r=180),
+        # Small, symmetric margins so the figure fills the viewport on
+        # narrow screens (iPhone emulator ~440px). Earlier we used r=180
+        # to fit an outside-the-plot label, but that ate almost all of the
+        # available width on small viewports.
+        margin=dict(t=60, b=80, l=60, r=40),
     )
     st.plotly_chart(fig, use_container_width=True)
 
