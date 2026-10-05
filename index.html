@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIII 診斷器 — 時間價值盲點 (TVB-20 Prototype)</title>
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --accent: #3498db;
+      --warn: #e74c3c;
+      --ok: #27ae60;
+      --bg: #f7f9fc;
+      --card: #ffffff;
+      --border: #e1e6ed;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Microsoft JhengHei", "Noto Sans CJK TC", "PingFang TC", sans-serif;
+      background: var(--bg);
+      color: var(--primary);
+      line-height: 1.7;
+      padding: 24px 16px;
+    }
+    .container { max-width: 760px; margin: 0 auto; }
+    header {
+      text-align: center;
+      padding: 24px 0 16px;
+      border-bottom: 2px solid var(--accent);
+      margin-bottom: 24px;
+    }
+    header h1 {
+      font-size: 26px;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    header p {
+      font-size: 14px;
+      color: #6c7a89;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 18px;
+      color: var(--accent);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .scenario {
+      background: linear-gradient(135deg, #eaf2fb 0%, #f7f9fc 100%);
+      padding: 16px;
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .input-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .input-group .hint-text {
+      font-size: 12px;
+      color: #95a5a6;
+      margin-top: -4px;
+    }
+    .input-group input {
+      font-size: 18px;
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      width: 100%;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+    .btn:hover { background: #2980b9; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      margin-top: 12px;
+    }
+    .btn-secondary:hover {
+      background: var(--accent);
+      color: white;
+    }
+    .result { display: none; }
+    .result.show { display: block; }
+    .result-banner {
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+    .result-banner.unknown { background: #ffe8e3; color: #c0392b; border: 2px solid var(--warn); }
+    .result-banner.serious { background: #fff3cd; color: #b9770c; border: 2px solid #f39c12; }
+    .result-banner.near { background: #fff8dc; color: #876800; border: 2px solid #f1c40f; }
+    .result-banner.correct { background: #d4f5e2; color: var(--ok); border: 2px solid var(--ok); }
+    .result-banner h3 { font-size: 22px; margin-bottom: 8px; }
+    .result-banner p { font-size: 15px; }
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .comparison-item {
+      background: #f8fafd;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    .comparison-item .label {
+      font-size: 12px;
+      color: #6c7a89;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .comparison-item .value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .comparison-item.highlight .value { color: var(--accent); }
+    .comparison-item.warn .value { color: var(--warn); }
+    .gap-display {
+      padding: 16px;
+      background: #fff3cd;
+      border-radius: 8px;
+      text-align: center;
+      margin: 16px 0;
+    }
+    .gap-display .label { font-size: 13px; color: #876800; margin-bottom: 4px; }
+    .gap-display .gap { font-size: 28px; font-weight: 700; color: #b9770c; }
+    .gap-display .desc { font-size: 13px; color: #876800; margin-top: 4px; }
+    .personal-msg {
+      padding: 16px;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-radius: 8px;
+      border-left: 4px solid var(--accent);
+      font-size: 15px;
+      line-height: 1.8;
+    }
+    .personal-msg strong { color: var(--accent); }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label { color: #6c7a89; }
+    .info-row .value { font-weight: 600; }
+    .legend {
+      background: #fafbfc;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #6c7a89;
+      margin-top: 16px;
+    }
+    .legend strong { color: var(--primary); }
+    footer {
+      text-align: center;
+      padding: 24px 0;
+      font-size: 12px;
+      color: #95a5a6;
+    }
+    @media (max-width: 600px) {
+      header h1 { font-size: 22px; }
+      .card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CIII 診斷器</h1>
+      <p>時間價值盲點 (Time-Value Blind Spots) — TVB-20 Prototype</p>
+    </header>
+
+    <!-- Step 1: Input estimate -->
+    <div class="card">
+      <h2>第一步：輸入你的估算</h2>
+      <div class="scenario">
+        <strong>情境題：</strong>假設你由 15 歲開始，每月儲蓄或投資 <strong>MOP $300</strong>，
+        年回報率 <strong>8%</strong>。18 年後，這筆錢大約會變成多少？
+      </div>
+      <div class="input-group">
+        <label for="estimate">你的估算（MOP）：</label>
+        <input type="number" id="estimate" placeholder="例如：120000" min="0" step="1000">
+        <div class="hint-text">提示：18 年本金 MOP $64,800。請嘗試估算長期複利後的總值。</div>
+      </div>
+      <button class="btn" onclick="diagnose()">提交估算 → 系統計算</button>
+    </div>
+
+    <!-- Step 2-5: Result -->
+    <div class="card result" id="result">
+      <h2 id="resultTitle">診斷結果</h2>
+      <div id="resultBanner" class="result-banner"></div>
+
+      <!-- Comparison: principal vs FV vs estimate -->
+      <div class="comparison">
+        <div class="comparison-item">
+          <div class="label">18 年本金總額</div>
+          <div class="value">MOP $64,800</div>
+        </div>
+        <div class="comparison-item highlight">
+          <div class="label">合理複利終值</div>
+          <div class="value">MOP $144,026</div>
+        </div>
+        <div class="comparison-item warn">
+          <div class="label">你的估算</div>
+          <div class="value" id="userEstimate">—</div>
+        </div>
+      </div>
+
+      <!-- Gap display -->
+      <div class="gap-display">
+        <div class="label">你的估算與合理終值的差距</div>
+        <div class="gap" id="gapValue">—</div>
+        <div class="desc" id="gapDesc"></div>
+      </div>
+
+      <!-- Personal message -->
+      <div class="personal-msg" id="personalMsg"></div>
+
+      <!-- Classification details -->
+      <div id="classificationDetails"></div>
+
+      <!-- Reset button -->
+      <button class="btn btn-secondary" onclick="resetForm()">重新估算</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="card">
+      <h2>分類說明</h2>
+      <div class="info-row">
+        <span class="label">正確量級</span>
+        <span class="value">MOP $120,000 – $200,000</span>
+      </div>
+      <div class="info-row">
+        <span class="label">接近但低估</span>
+        <span class="value">MOP $60,000 – $120,000</span>
+      </div>
+      <div class="info-row">
+        <span class="label">嚴重低估</span>
+        <span class="value">低於 MOP $60,000</span>
+      </div>
+      <div class="info-row">
+        <span class="label">不知道</span>
+        <span class="value">未輸入估算 / 估算為 0</span>
+      </div>
+      <div class="legend">
+        <strong>公式：</strong> FV = 300 × [((1+0.08/12)<sup>216</sup>−1) / (0.08/12)] ≈ MOP $144,026<br>
+        <strong>注意：</strong> 8% 為教育假設，不構成投資建議。實際投資有風險、波動、費用與通脹問題。
+      </div>
+    </div>
+
+    <footer>
+      <div>TVB-20 × CIII 診斷器原型 v1.0</div>
+      <div style="margin-top:4px;">第七屆澳門青少年科學家大會 · 探索性教育工具</div>
+    </footer>
+  </div>
+
+  <script>
+    // Compute compound interest future value
+    // FV = PMT × [((1+r)^n - 1) / r]
+    // PMT = 300, r = 0.08/12, n = 18*12 = 216
+    const PMT = 300;
+    const r = 0.08 / 12;
+    const n = 216;
+    const PRINCIPAL = PMT * n;  // 64,800
+    const FV = PMT * (Math.pow(1 + r, n) - 1) / r;  // ≈ 144,026
+
+    // Classification thresholds (MOP)
+    const THRESHOLDS = {
+      correct_min: 120000,
+      correct_max: 200000,
+      near_min: 60000,
+      near_max: 120000,
+    };
+
+    function classify(estimate) {
+      if (estimate === null || isNaN(estimate) || estimate <= 0) {
+        return {
+          key: 'unknown',
+          label: '不知道',
+          emoji: '❓',
+          message: '你沒有輸入金額。這本身已經是一個值得關注的信號：學生面對長期複利問題時，缺乏進入估算的基本入口。',
+        };
+      }
+      if (estimate >= THRESHOLDS.correct_min && estimate <= THRESHOLDS.correct_max) {
+        return {
+          key: 'correct',
+          label: '正確量級',
+          emoji: '✅',
+          message: '你的估算已進入正確區間。這說明你具備基本長期複利量級感，可進一步學習風險、流動性與投資組合等進階內容。',
+        };
+      }
+      if (estimate >= THRESHOLDS.near_min && estimate < THRESHOLDS.correct_min) {
+        return {
+          key: 'near',
+          label: '接近但低估',
+          emoji: '⚠️',
+          message: '你有部分量感，但仍低估了時間放大效應。實際 18 年終值約為 MOP $144,026，比你的估算多出不少。',
+        };
+      }
+      if (estimate < THRESHOLDS.near_min) {
+        return {
+          key: 'serious',
+          label: '嚴重低估',
+          emoji: '🚨',
+          message: '你的估算接近甚至低於本金總額（MOP $64,800）。這代表你傾向線性本金思維，未能把時間視為放大金錢的金融變量。',
+        };
+      }
+      // 估算 > 200000 (高估)
+      if (estimate > THRESHOLDS.correct_max) {
+        return {
+          key: 'over',
+          label: '高估',
+          emoji: '⬆️',
+          message: '你的估算高於嚴格正確區間。雖然高估方向上不算盲點，但實際上 8% 年回報並非保證，且涉及波動、流動性與費用，請留意風險不確定性。',
+        };
+      }
+    }
+
+    function formatMOP(n) {
+      return 'MOP $' + Math.round(n).toLocaleString();
+    }
+
+    function diagnose() {
+      const input = document.getElementById('estimate');
+      const raw = input.value.trim();
+      const estimate = raw === '' ? null : parseFloat(raw);
+
+      if (estimate !== null && estimate <= 0) {
+        alert('請輸入正數金額。');
+        return;
+      }
+
+      const result = classify(estimate);
+      const banner = document.getElementById('resultBanner');
+      const resultCard = document.getElementById('result');
+      const userEstEl = document.getElementById('userEstimate');
+      const gapEl = document.getElementById('gapValue');
+      const gapDescEl = document.getElementById('gapDesc');
+      const personalMsg = document.getElementById('personalMsg');
+      const classDetails = document.getElementById('classificationDetails');
+
+      // Set banner
+      banner.className = 'result-banner ' + result.key;
+      banner.innerHTML = `<h3>${result.emoji} ${result.label}</h3>` +
+        `<p>${result.label}類別 — 認知診斷已記錄</p>`;
+
+      // User estimate display
+      userEstEl.textContent = estimate !== null ? formatMOP(estimate) : '未輸入';
+
+      // Gap calculation
+      let gapHTML, gapDescText;
+      if (estimate === null) {
+        gapHTML = '—';
+        gapDescText = '未估算，無法計算差距';
+      } else {
+        const diff = FV - estimate;
+        const pctOff = (diff / FV * 100);
+        if (Math.abs(pctOff) < 1) {
+          gapHTML = formatMOP(0);
+          gapDescText = '你的估算幾乎完全正確';
+        } else if (diff > 0) {
+          gapHTML = '−' + formatMOP(diff);
+          gapDescText = `低估了 ${pctOff.toFixed(1)}% 的複利終值`;
+        } else {
+          gapHTML = '+' + formatMOP(-diff);
+          gapDescText = `高估了 ${(-pctOff).toFixed(1)}% 的複利終值`;
+        }
+      }
+      gapEl.textContent = gapHTML;
+      gapDescEl.textContent = gapDescText;
+
+      // Personal message
+      personalMsg.innerHTML = '<strong>個人化提示：</strong>' + result.message;
+
+      // Classification details
+      let detailsHTML = '<div class="legend" style="margin-top:16px;"><strong>診斷分類標準：</strong><br>';
+      detailsHTML += '• <strong>正確量級</strong>：MOP $120,000 – $200,000（<5% 本樣本學生）<br>';
+      detailsHTML += '• <strong>接近但低估</strong>：MOP $60,000 – $120,000（~20%）<br>';
+      detailsHTML += '• <strong>嚴重低估</strong>：低於 MOP $60,000（~20%）<br>';
+      detailsHTML += '• <strong>不知道</strong>：未估算（>50% — 你嘅位置如果同樣選擇「不知道」）';
+      detailsHTML += '</div>';
+      classDetails.innerHTML = detailsHTML;
+
+      // Show result
+      resultCard.classList.add('show');
+      // Smooth scroll to result
+      setTimeout(() => {
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    function resetForm() {
+      document.getElementById('estimate').value = '';
+      document.getElementById('result').classList.remove('show');
+      document.getElementById('estimate').focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Allow Enter key
+    document.getElementById('estimate').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') diagnose();
+    });
+
+    // Focus input on load
+    window.addEventListener('load', () => {
+      document.getElementById('estimate').focus();
+    });
+  </script>
+</body>
+</html>
